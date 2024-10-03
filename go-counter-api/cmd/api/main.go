@@ -14,10 +14,9 @@ import (
 )
 
 var (
-	db            *dbclient.DBClient
-	config        *common.Config
-	kProducer     *producer.ProducerClient
-	SECRET_HEADER = "SECRET_HEADER"
+	db        *dbclient.DBClient
+	config    *common.Config
+	kProducer *producer.ProducerClient
 )
 
 func InitDB(config *common.Config) {
@@ -80,8 +79,7 @@ func Websocket(c *gin.Context) {
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
 		CheckOrigin: func(r *http.Request) bool {
-			secret := r.Header.Get(SECRET_HEADER)
-			return secret == config.Secret
+			return true
 		},
 	}
 

@@ -7,7 +7,6 @@ import (
 type Config struct {
 	Host     string
 	Pass     string
-	Secret   string
 	KafkaUrl string
 }
 
@@ -22,11 +21,6 @@ func GetConfig() *Config {
 		panic("REDIS_PASS not set")
 	}
 
-	secret, found := os.LookupEnv("SECRET")
-	if !found {
-		panic("SECRET not set")
-	}
-
 	url, found := os.LookupEnv("KAFKA_URL")
 	if !found {
 		panic("KAFKA_URL not set")
@@ -35,7 +29,6 @@ func GetConfig() *Config {
 	return &Config{
 		Host:     host,
 		Pass:     pass,
-		Secret:   secret,
 		KafkaUrl: url,
 	}
 }

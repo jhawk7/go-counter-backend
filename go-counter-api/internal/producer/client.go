@@ -3,6 +3,7 @@ package producer
 import (
 	"encoding/json"
 	"fmt"
+	"go-counter-api/internal/common"
 	"time"
 )
 
@@ -42,5 +43,6 @@ func (s *ProducerClient) WriteMsg(rawMsg []byte) (err error) {
 		return
 	}
 
+	common.LogInfo(fmt.Sprintf("successfully sent message to stream client; %v", m.Event))
 	return
 }
