@@ -1,9 +1,9 @@
-package producer
+package event
 
 import (
 	"encoding/json"
 	"fmt"
-	"go-counter-api/internal/common"
+	"github.com/go-counter-backend/shared/common"
 	"time"
 )
 
@@ -11,7 +11,7 @@ type IStreamConn interface {
 	Write([]byte) (int, error)
 }
 
-type ProducerClient struct {
+type EventClient struct {
 	kconn IStreamConn
 }
 
@@ -20,11 +20,11 @@ type msg struct {
 	Ts    time.Time `json:",omitempty"`
 }
 
-func InitProducer(kconn IStreamConn) *ProducerClient {
-	return &ProducerClient{kconn: kconn}
+func InitEventClient(kconn IStreamConn) *EventClient {
+	return &EventClient{kconn: kconn}
 }
 
-func (s *ProducerClient) WriteMsg(rawMsg []byte) (err error) {
+func (s *EventClient) WriteMsg(rawMsg []byte) (err error) {
 	var m msg
 	if mErr := json.Unmarshal(rawMsg, &m); mErr != nil {
 		err = fmt.Errorf("failed to parse incoming message; [raw: %v], [error: %v]", rawMsg, mErr)

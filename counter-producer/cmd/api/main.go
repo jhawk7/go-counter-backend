@@ -1,13 +1,14 @@
 package main
 
 import (
+	"context"
 	"fmt"
-	"go-counter-api/internal/common"
-	"go-counter-api/internal/dbclient"
-	"go-counter-api/internal/producer"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-counter-backend/shared/common"
+	"github.com/go-counter-backend/shared/dbclient"
+	"github.com/go-counter-backend/shared/event"
 	"github.com/gorilla/websocket"
 	"github.com/redis/go-redis/v9"
 	"github.com/segmentio/kafka-go"
@@ -16,7 +17,7 @@ import (
 var (
 	db        *dbclient.DBClient
 	config    *common.Config
-	kProducer *producer.ProducerClient
+	kProducer *event.EventClient
 )
 
 func InitDB(config *common.Config) {
@@ -36,12 +37,12 @@ func InitDB(config *common.Config) {
 }
 
 func InitProducer(config *common.Config) {
-	kconn, kErr := kafka.Dial("tcp", config.KafkaUrl)
+	kconn, kErr := kafka.DialLeader(context.Background(), "tcp", config.KafkaUrl, config.KafkaTopic, 0)
 	if kErr != nil {
 		panic(fmt.Errorf("failed to establish connection to kafka; %v", kErr))
 	}
 
-	kProducer = producer.InitProducer(kconn)
+	kProducer = event.InitEventClient(kconn)
 }
 
 func main() {

@@ -3,7 +3,8 @@ package dbclient
 import (
 	"context"
 	"fmt"
-	"go-counter-api/internal/common"
+	"github.com/go-counter-backend/shared/common"
+	"time"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -14,7 +15,9 @@ const (
 
 type IDBSvc interface {
 	Get(context.Context, string) *redis.StringCmd
+	Set(context.Context, string, interface{}, time.Duration) *redis.StatusCmd
 	Ping(context.Context) *redis.StatusCmd
+	Incr(context.Context, string) *redis.IntCmd
 }
 
 type DBClient struct {
@@ -44,5 +47,27 @@ func (c *DBClient) GetValue(ctx context.Context) (val int, err error) {
 	common.LogInfo(fmt.Sprintf("successfully retrieved counter value: %v", res))
 
 	val = res
+	return
+}
+
+func (c *DBClient) SetValue(ctx context.Context, value int) (err error) {
+	if setErr := c.svc.Set(ctx, key, value, 0).Err(); setErr != nil {
+		err = fmt.Errorf("failed to set kv pair; [key: %v] [value: %v] [error: %v]", key, value, setErr)
+		return
+	}
+
+	common.LogInfo(fmt.Sprintf("successfully reset counter: [%v:%v]", key, value))
+
+	return
+}
+
+func (c *DBClient) IncrementCount(ctx context.Context) (err error) {
+	val, incErr := c.svc.Incr(ctx, key).Result()
+	if incErr != nil {
+		err = fmt.Errorf("failed to increment counter; [error: %v]", incErr)
+		return
+	}
+
+	common.LogInfo(fmt.Sprintf("counter incremented to %v", val))
 	return
 }

@@ -1,13 +1,23 @@
 package main
 
 import (
-	"go-counter-consumer/internal/common"
-	"go-counter-consumer/internal/dbclient"
+	"context"
+	"fmt"
+	"net/http"
 
+	"github.com/gin-gonic/gin"
+	"github.com/go-counter-backend/shared/common"
+	"github.com/go-counter-backend/shared/dbclient"
+	"github.com/go-counter-backend/shared/event"
 	"github.com/redis/go-redis/v9"
+	"github.com/segmentio/kafka-go"
 )
 
-var db *dbclient.DBClient
+var (
+	db        *dbclient.DBClient
+	config    *common.Config
+	kConsumer *event.EventClient
+)
 
 func InitDB(config *common.Config) {
 	opts := redis.Options{
@@ -25,23 +35,38 @@ func InitDB(config *common.Config) {
 	db = dbsvc
 }
 
+func InitConsumer(config *common.Config) {
+	kconn, kErr := kafka.DialLeader(context.Background(), "tcp", config.KafkaUrl, config.KafkaTopic, 0)
+	if kErr != nil {
+		panic(fmt.Errorf("failed to establish connection to kafka; %v", kErr))
+	}
+
+	kConsumer = event.InitEventClient(kconn)
+}
+
 func main() {
 	config := common.GetConfig()
+	InitConsumer(config)
 	InitDB(config)
 
-	// r := gin.Default()
-	// r.Use(common.ErrorHandler())
-	// r.Use()
-	// r.GET("/ping", func(c *gin.Context) {
-	// 	c.JSON(http.StatusOK, gin.H{
-	// 		"message": "pong",
-	// 	})
-	// })
+	r := gin.Default()
+	r.Use(common.ErrorHandler())
+	r.Use()
+	r.GET("/ping", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"message": "pong",
+		})
+	})
 
 	// r.GET("/count", GetCount)
 	// r.PUT("/count", ResetCount)
 	// r.PATCH("/count", UpdateCount)
-	// r.Run(":8888")
+	go ReadStream()
+	r.Run(":8888")
+}
+
+func ReadStream() {
+
 }
 
 // func GetCount(c *gin.Context) {

@@ -5,9 +5,10 @@ import (
 )
 
 type Config struct {
-	Host     string
-	Pass     string
-	KafkaUrl string
+	Host       string
+	Pass       string
+	KafkaUrl   string
+	KafkaTopic string
 }
 
 func GetConfig() *Config {
@@ -26,9 +27,15 @@ func GetConfig() *Config {
 		panic("KAFKA_URL not set")
 	}
 
+	topic, found := os.LookupEnv("KAFKA_TOPIC")
+	if !found {
+		panic("KAFKA_TOPIC not set")
+	}
+
 	return &Config{
-		Host:     host,
-		Pass:     pass,
-		KafkaUrl: url,
+		Host:       host,
+		Pass:       pass,
+		KafkaUrl:   url,
+		KafkaTopic: topic,
 	}
 }
