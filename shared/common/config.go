@@ -5,8 +5,8 @@ import (
 )
 
 type Config struct {
-	Host       string
-	Pass       string
+	RedisHost  string
+	RedisPass  string
 	KafkaHost  string
 	KafkaTopic string
 }
@@ -33,8 +33,8 @@ func GetConfig() *Config {
 	}
 
 	return &Config{
-		Host:       host,
-		Pass:       pass,
+		RedisHost:  host,
+		RedisPass:  pass,
 		KafkaHost:  khost,
 		KafkaTopic: topic,
 	}

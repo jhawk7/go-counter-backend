@@ -3,6 +3,7 @@ package event
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"time"
 
 	"github.com/go-counter-backend/shared/common"
@@ -10,8 +11,10 @@ import (
 )
 
 const (
-	minBytes = 10
+	minBytes = 200
 	maxBytes = 1e6
+	sleep    = 10
+	buffer   = 10e3
 )
 
 type IStreamConn interface {
@@ -29,6 +32,7 @@ type Msg struct {
 }
 
 func InitEventClient(kconn IStreamConn) *EventClient {
+	common.LogInfo("successfully established connection with Kafka")
 	return &EventClient{kconn: kconn}
 }
 
@@ -46,24 +50,33 @@ func (s *EventClient) WriteMsg(rawMsg []byte) (err error) {
 		return
 	}
 
-	if _, wErr := s.kconn.Write(rawBytes); wErr != nil {
+	bcount, wErr := s.kconn.Write(rawBytes)
+	if wErr != nil {
 		err = fmt.Errorf("failed to write msg to stream client; [error: %v]", wErr)
 		return
 	}
 
-	common.LogInfo(fmt.Sprintf("successfully sent message to stream client; %v", m.Event))
+	common.LogInfo(fmt.Sprintf("successfully sent message of %v bytes to stream client; %v", bcount, m.Event))
 	return
 }
 
 func (s *EventClient) ReadMsg(ch chan<- Msg) {
 	batch := s.kconn.ReadBatch(minBytes, maxBytes)
-	b := make([]byte, 20)
+	b := make([]byte, buffer)
 	for {
 		n, rErr := batch.Read(b)
-		if rErr != nil {
+
+		//only log errors that are NOT EOF errors - meaning all messages were read
+		if rErr != nil && rErr != io.EOF {
 			err := fmt.Errorf("failed to process message batch: [error: %v]", rErr)
 			common.LogError(err, false)
 		}
+
+		if n == 0 {
+			time.Sleep(sleep * time.Second)
+			continue
+		}
+
 		common.LogInfo(fmt.Sprintf("Successfully read %v messages from batch", n))
 		common.LogInfo(fmt.Sprintf("read msg %v", string(b[:n])))
 
@@ -72,6 +85,8 @@ func (s *EventClient) ReadMsg(ch chan<- Msg) {
 			err := fmt.Errorf("failed to parse raw message into struct; [error: %v]", jErr)
 			common.LogError(err, false)
 		}
+
+		common.LogInfo(fmt.Sprintf("processing message with ts: %v", msg.Ts.String()))
 		ch <- msg
 	}
 }

@@ -26,8 +26,11 @@ func LogInfo(msg string) {
 }
 
 func LogError(err error, fatal bool) {
-	log.Errorf("error: %v", err.Error())
-	if fatal {
-		panic(err)
+	if err != nil {
+		log.Errorf("error: %v", err)
+
+		if fatal {
+			panic(err)
+		}
 	}
 }
