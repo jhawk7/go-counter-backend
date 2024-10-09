@@ -25,7 +25,7 @@ const (
 	sleep  = 2
 )
 
-func InitDB(config *common.Config) {
+func InitDB() {
 	opts := redis.Options{
 		Addr:     config.RedisHost,
 		Password: config.RedisPass,
@@ -41,7 +41,7 @@ func InitDB(config *common.Config) {
 	db = dbsvc
 }
 
-func InitConsumer(config *common.Config) {
+func InitConsumer() {
 	kconn, kErr := kafka.DialLeader(context.Background(), "tcp", config.KafkaHost, config.KafkaTopic, 0)
 	if kErr != nil {
 		panic(fmt.Errorf("failed to establish connection to kafka; %v", kErr))
@@ -51,9 +51,9 @@ func InitConsumer(config *common.Config) {
 }
 
 func main() {
-	config := common.GetConfig()
-	InitDB(config)
-	InitConsumer(config)
+	config = common.GetConfig()
+	InitDB()
+	InitConsumer()
 
 	r := gin.Default()
 	r.Use(common.ErrorHandler())
