@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-counter-backend/shared/common"
@@ -19,10 +20,15 @@ var (
 	kConsumer *event.EventClient
 )
 
+const (
+	buffer = 10
+	sleep  = 2
+)
+
 func InitDB(config *common.Config) {
 	opts := redis.Options{
-		Addr:     config.Host,
-		Password: config.Pass,
+		Addr:     config.RedisHost,
+		Password: config.RedisPass,
 		DB:       0,
 	}
 
@@ -46,8 +52,8 @@ func InitConsumer(config *common.Config) {
 
 func main() {
 	config := common.GetConfig()
-	InitConsumer(config)
 	InitDB(config)
+	InitConsumer(config)
 
 	r := gin.Default()
 	r.Use(common.ErrorHandler())
@@ -64,7 +70,7 @@ func main() {
 
 func ReadStream() {
 	ctx := context.Background()
-	ch := make(chan event.Msg)
+	ch := make(chan event.Msg, buffer)
 	go kConsumer.ReadMsg(ch)
 
 	for m := range ch {
@@ -76,7 +82,9 @@ func ReadStream() {
 			err := db.SetValue(ctx, 0)
 			common.LogError(err, false)
 		default:
-			common.LogError(fmt.Errorf("unexpected event message"), false)
+			common.LogError(fmt.Errorf("unexpected event message %v", m.Event), false)
 		}
+
+		time.Sleep(sleep * time.Millisecond)
 	}
 }

@@ -22,8 +22,8 @@ var (
 
 func InitDB(config *common.Config) {
 	opts := redis.Options{
-		Addr:     config.Host,
-		Password: config.Pass,
+		Addr:     config.RedisHost,
+		Password: config.RedisPass,
 		DB:       0,
 	}
 
