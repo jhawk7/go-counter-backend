@@ -24,3 +24,10 @@ func ErrorHandler() gin.HandlerFunc {
 func LogInfo(msg string) {
 	log.Info(msg)
 }
+
+func LogError(err error, fatal bool) {
+	log.Errorf("error: %v", err.Error())
+	if fatal {
+		panic(err)
+	}
+}

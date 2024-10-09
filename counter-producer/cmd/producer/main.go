@@ -37,7 +37,7 @@ func InitDB(config *common.Config) {
 }
 
 func InitProducer(config *common.Config) {
-	kconn, kErr := kafka.DialLeader(context.Background(), "tcp", config.KafkaUrl, config.KafkaTopic, 0)
+	kconn, kErr := kafka.DialLeader(context.Background(), "tcp", config.KafkaHost, config.KafkaTopic, 0)
 	if kErr != nil {
 		panic(fmt.Errorf("failed to establish connection to kafka; %v", kErr))
 	}

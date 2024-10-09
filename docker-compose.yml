@@ -13,7 +13,9 @@ services:
 
   consumer:
     image: "jhawk7/go-counter-consumer"
-    build: ./go-counter-consumer/Dockerfile
+    build: 
+      context: ./ #dockerfile context will be relative to this file's dir
+      dockerfile: ./counter-consumer/Dockerfile
     ports:
       - "8181:8888"
     env_file:
@@ -22,9 +24,11 @@ services:
     depends_on:
       - redis
   
-  api:
-    image: "jhawk7/go-counter-api"
-    build: ./go-counter-api/
+  producer:
+    image: "jhawk7/go-counter-producer"
+    build:
+      context: ./ 
+      dockerfile: ./counter-producer/Dockerfile
     ports:
       - "8888:8888"
     env_file:

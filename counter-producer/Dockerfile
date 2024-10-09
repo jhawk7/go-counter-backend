@@ -1,11 +1,12 @@
 FROM golang:1.22.1-alpine3.19 AS builder
-WORKDIR /go/app
-COPY . ./
+WORKDIR /go/producer
+COPY ./counter-producer ./
+COPY ./shared ../shared
 RUN go mod download
 RUN mkdir bin
-RUN cd cmd/api/ && go build -o ../../bin/api
+RUN cd cmd/producer/ && go build -o ../../bin/producer
 
 FROM golang:1.22.1-alpine3.19
 WORKDIR /go
-COPY --from=builder /go/app/bin/api .
-CMD ["./api"]
+COPY --from=builder /go/producer/bin/producer .
+CMD ["./producer"]
