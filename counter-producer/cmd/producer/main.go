@@ -70,6 +70,7 @@ func GetCount(c *gin.Context) {
 		return
 	}
 
+	c.Header("Access-Control-Allow-Origin", "*")
 	c.JSON(http.StatusOK, gin.H{
 		"count": val,
 	})
@@ -97,12 +98,11 @@ func Websocket(c *gin.Context) {
 		_, rawMsg, rErr := conn.ReadMessage()
 		if rErr != nil {
 			c.Error(fmt.Errorf("failed to read incoming msg; [error: %v]", rErr))
-			continue
+			return
 		}
 
 		if wErr := kProducer.WriteMsg(rawMsg); wErr != nil {
 			c.Error(wErr)
 		}
 	}
-
 }
