@@ -32,6 +32,15 @@ func InitDBClient(svc IDBSvc) (*DBClient, error) {
 
 	common.LogInfo("established connection to redis instance")
 
+	if _, kErr := svc.Get(context.Background(), key).Result(); kErr != nil {
+		if kErr != redis.Nil {
+			return nil, fmt.Errorf("failed to search redis instance for initial kv pair; [error: %v]", kErr)
+		} else {
+			svc.Set(context.Background(), key, 0, 0)
+			common.LogInfo("initialized redis instance with counter:0 kv pair")
+		}
+	}
+
 	return &DBClient{
 		svc: svc,
 	}, nil
