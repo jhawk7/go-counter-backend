@@ -20,7 +20,7 @@ services:
       context: ./ #dockerfile context will be relative to this file's dir
       dockerfile: ./counter-consumer/Dockerfile
     ports:
-      - "8181:8888"
+      - "8181:8889"
     env_file:
       - redis.env
       - kafka.env
