@@ -2,3 +2,4 @@
 .env.*
 redis-data/
 */requests.http
+kafka-data/

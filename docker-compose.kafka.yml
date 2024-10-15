@@ -18,3 +18,5 @@ services:
     ports:
       - 9092:9092
       - 29092:29092
+    volumes:
+      - ./kafka-data:/etc/kafka/secrets/mnt/shared/config/var/lib/kafka/data
