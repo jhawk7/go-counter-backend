@@ -61,36 +61,40 @@ func (s *EventClient) WriteMsg(rawMsg []byte) (err error) {
 }
 
 func (s *EventClient) ReadMsg(ch chan<- Msg) {
+	batch, b := s.configureBatch()
+
 	for {
-		batch := s.kconn.ReadBatch(minBytes, maxBytes)
-		b := make([]byte, buffer)
-
-		for {
-			n, rErr := batch.Read(b)
-			if rErr != nil {
-				checkBatchErr(rErr)
-				batch.Close() //batch is no longer usable after an error is returned
-				break
-			}
-
-			if n == 0 {
-				time.Sleep(sleep * time.Second)
-				continue
-			}
-
-			common.LogInfo(fmt.Sprintf("Successfully read %v bytes from batch", n))
-			common.LogInfo(fmt.Sprintf("read msg %v", string(b[:n])))
-
-			var msg Msg
-			if jErr := json.Unmarshal(b[:n], &msg); jErr != nil {
-				err := fmt.Errorf("failed to parse raw message into struct; [error: %v]", jErr)
-				common.LogError(err, false)
-			}
-
-			common.LogInfo(fmt.Sprintf("processing message with ts: %v", msg.Ts.String()))
-			ch <- msg
+		n, rErr := batch.Read(b)
+		if rErr != nil {
+			checkBatchErr(rErr)
+			batch.Close()                 //batch is no longer usable after an error is returned
+			batch, b = s.configureBatch() //re-configure batch and byte array
+			continue
 		}
+
+		if n == 0 {
+			time.Sleep(sleep * time.Second)
+			continue
+		}
+
+		common.LogInfo(fmt.Sprintf("Successfully read %v bytes from batch", n))
+		common.LogInfo(fmt.Sprintf("read msg %v", string(b[:n])))
+
+		var msg Msg
+		if jErr := json.Unmarshal(b[:n], &msg); jErr != nil {
+			err := fmt.Errorf("failed to parse raw message into struct; [error: %v]", jErr)
+			common.LogError(err, false)
+		}
+
+		common.LogInfo(fmt.Sprintf("processing message with ts: %v", msg.Ts.String()))
+		ch <- msg
 	}
+}
+
+func (s *EventClient) configureBatch() (*kafka.Batch, []byte) {
+	batch := s.kconn.ReadBatch(minBytes, maxBytes)
+	b := make([]byte, buffer)
+	return batch, b
 }
 
 // only log errors that are NOT EOF errors - meaning all messages were read

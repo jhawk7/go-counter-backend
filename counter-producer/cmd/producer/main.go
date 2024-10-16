@@ -88,7 +88,7 @@ func Websocket(c *gin.Context) {
 	conn, connErr := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if connErr != nil {
 		err := fmt.Errorf("failed to upgrade connection to websocket; %v", connErr)
-		c.Error(err)
+		common.LogError(err, false)
 		return
 	}
 
@@ -97,12 +97,12 @@ func Websocket(c *gin.Context) {
 	for {
 		_, rawMsg, rErr := conn.ReadMessage()
 		if rErr != nil {
-			c.Error(fmt.Errorf("failed to read incoming msg; [error: %v]", rErr))
+			common.LogError(fmt.Errorf("failed to read incoming msg; [error: %v]", rErr), false)
 			return
 		}
 
 		if wErr := kProducer.WriteMsg(rawMsg); wErr != nil {
-			c.Error(wErr)
+			common.LogError(wErr, false)
 		}
 	}
 }
