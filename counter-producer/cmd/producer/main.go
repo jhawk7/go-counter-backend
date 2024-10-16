@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-counter-backend/shared/common"
@@ -14,10 +15,15 @@ import (
 	"github.com/segmentio/kafka-go"
 )
 
+const (
+	wsTimeout = time.Second * 30
+)
+
 var (
-	db        *dbclient.DBClient
-	config    *common.Config
-	kProducer *event.EventClient
+	db           *dbclient.DBClient
+	config       *common.Config
+	kProducer    *event.EventClient
+	lastResponse time.Time
 )
 
 func InitDB() {
@@ -92,6 +98,8 @@ func Websocket(c *gin.Context) {
 		return
 	}
 
+	conn.SetPongHandler(wsPongHandler)
+	go wsKeepAlive(conn)
 	defer conn.Close()
 
 	for {
@@ -103,6 +111,25 @@ func Websocket(c *gin.Context) {
 
 		if wErr := kProducer.WriteMsg(rawMsg); wErr != nil {
 			common.LogError(wErr, false)
+		}
+	}
+}
+
+func wsPongHandler(msg string) error {
+	lastResponse = time.Now()
+	return nil
+}
+
+func wsKeepAlive(c *websocket.Conn) {
+	for {
+		if err := c.WriteMessage(websocket.PingMessage, []byte("PING")); err != nil {
+			common.LogError(fmt.Errorf("failed to ping ws client"), false)
+		}
+
+		time.Sleep(wsTimeout / 2)
+		if time.Since(lastResponse) > wsTimeout {
+			common.LogInfo(fmt.Sprintf("ws client has not responded within the time window; [last response: %v]; connection will now close", lastResponse))
+			c.Close()
 		}
 	}
 }
