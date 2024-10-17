@@ -47,6 +47,7 @@ func InitProducer() {
 		panic(fmt.Errorf("failed to establish connection to kafka; %v", kErr))
 	}
 
+	kconn.SetWriteDeadline(time.Time{}) //indefinite
 	kProducer = event.InitEventClient(kconn)
 }
 
@@ -128,18 +129,11 @@ func handleWs(conn *websocket.Conn) {
 func wsKeepAlive(conn *websocket.Conn) {
 	for {
 		if err := conn.WriteMessage(websocket.PingMessage, []byte("ping")); err != nil {
-			//common.LogError(fmt.Errorf("failed to ping ws client"), false)
-			//common.LogInfo(fmt.Sprintf("ws client has not responded within the time window; [last response: %v]; connection will now close", lastResponse))
 			common.LogError(fmt.Errorf("no message was recieved from client within time window %v", err), false)
 			conn.Close()
 			return
 		}
 
 		time.Sleep(wsTimeout / 2)
-		// if time.Since(lastResponse) > wsTimeout {
-		// 	common.LogInfo(fmt.Sprintf("ws client has not responded within the time window; [last response: %v]; connection will now close", lastResponse))
-		// 	conn.Close()
-		// 	return
-		// }
 	}
 }

@@ -47,6 +47,7 @@ func InitConsumer() {
 		panic(fmt.Errorf("failed to establish connection to kafka; %v", kErr))
 	}
 
+	kconn.SetReadDeadline(time.Time{}) //indefinite
 	kConsumer = event.InitEventClient(kconn)
 }
 
