@@ -20,10 +20,9 @@ const (
 )
 
 var (
-	db           *dbclient.DBClient
-	config       *common.Config
-	kProducer    *event.EventClient
-	lastResponse time.Time
+	db        *dbclient.DBClient
+	config    *common.Config
+	kProducer *event.EventClient
 )
 
 func InitDB() {
@@ -98,7 +97,17 @@ func Websocket(c *gin.Context) {
 		return
 	}
 
-	conn.SetPongHandler(wsPongHandler)
+	handleWs(conn)
+}
+
+func handleWs(conn *websocket.Conn) {
+	conn.SetPongHandler(func(msg string) error {
+		conn.SetReadDeadline(time.Now().Add(wsTimeout))
+		common.LogInfo(fmt.Sprintf("received pong from ws client: ts: %v; msg: %v", time.Now(), msg))
+		return nil
+	})
+
+	conn.SetReadDeadline(time.Now().Add(wsTimeout))
 	go wsKeepAlive(conn)
 	defer conn.Close()
 
@@ -108,6 +117,7 @@ func Websocket(c *gin.Context) {
 			common.LogError(fmt.Errorf("failed to read incoming msg; [error: %v]", rErr), false)
 			return
 		}
+		conn.SetReadDeadline(time.Now().Add(wsTimeout))
 
 		if wErr := kProducer.WriteMsg(rawMsg); wErr != nil {
 			common.LogError(wErr, false)
@@ -115,21 +125,21 @@ func Websocket(c *gin.Context) {
 	}
 }
 
-func wsPongHandler(msg string) error {
-	lastResponse = time.Now()
-	return nil
-}
-
-func wsKeepAlive(c *websocket.Conn) {
+func wsKeepAlive(conn *websocket.Conn) {
 	for {
-		if err := c.WriteMessage(websocket.PingMessage, []byte("PING")); err != nil {
-			common.LogError(fmt.Errorf("failed to ping ws client"), false)
+		if err := conn.WriteMessage(websocket.PingMessage, []byte("ping")); err != nil {
+			//common.LogError(fmt.Errorf("failed to ping ws client"), false)
+			//common.LogInfo(fmt.Sprintf("ws client has not responded within the time window; [last response: %v]; connection will now close", lastResponse))
+			common.LogError(fmt.Errorf("no message was recieved from client within time window %v", err), false)
+			conn.Close()
+			return
 		}
 
 		time.Sleep(wsTimeout / 2)
-		if time.Since(lastResponse) > wsTimeout {
-			common.LogInfo(fmt.Sprintf("ws client has not responded within the time window; [last response: %v]; connection will now close", lastResponse))
-			c.Close()
-		}
+		// if time.Since(lastResponse) > wsTimeout {
+		// 	common.LogInfo(fmt.Sprintf("ws client has not responded within the time window; [last response: %v]; connection will now close", lastResponse))
+		// 	conn.Close()
+		// 	return
+		// }
 	}
 }

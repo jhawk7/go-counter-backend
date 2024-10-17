@@ -13,7 +13,7 @@ import (
 const (
 	minBytes = 200
 	maxBytes = 1e6
-	sleep    = 10
+	sleep    = 15
 	buffer   = 10e3
 )
 
@@ -69,10 +69,6 @@ func (s *EventClient) ReadMsg(ch chan<- Msg) {
 			checkBatchErr(rErr)
 			batch.Close()                 //batch is no longer usable after an error is returned
 			batch, b = s.configureBatch() //re-configure batch and byte array
-			continue
-		}
-
-		if n == 0 {
 			time.Sleep(sleep * time.Second)
 			continue
 		}
