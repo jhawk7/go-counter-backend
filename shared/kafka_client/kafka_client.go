@@ -1,4 +1,4 @@
-package event
+package kafka_client
 
 import (
 	"encoding/json"
@@ -22,7 +22,7 @@ type IStreamConn interface {
 	ReadBatch(int, int) *kafka.Batch
 }
 
-type EventClient struct {
+type KafkaClient struct {
 	kconn IStreamConn
 }
 
@@ -31,12 +31,12 @@ type Msg struct {
 	Ts    time.Time `json:"ts,omitempty"`
 }
 
-func InitEventClient(kconn IStreamConn) *EventClient {
+func InitKafkaClient(kconn IStreamConn) *KafkaClient {
 	common.LogInfo("successfully established connection with Kafka")
-	return &EventClient{kconn: kconn}
+	return &KafkaClient{kconn: kconn}
 }
 
-func (s *EventClient) WriteMsg(rawMsg []byte) (err error) {
+func (s *KafkaClient) WriteMsg(rawMsg []byte) (err error) {
 	var m Msg
 	if mErr := json.Unmarshal(rawMsg, &m); mErr != nil {
 		err = fmt.Errorf("failed to parse incoming message; [raw: %v], [error: %v]", rawMsg, mErr)
@@ -60,7 +60,7 @@ func (s *EventClient) WriteMsg(rawMsg []byte) (err error) {
 	return
 }
 
-func (s *EventClient) ReadMsg(ch chan<- Msg) {
+func (s *KafkaClient) ReadMsg(ch chan<- Msg) {
 	batch, b := s.configureBatch()
 
 	for {
@@ -87,7 +87,7 @@ func (s *EventClient) ReadMsg(ch chan<- Msg) {
 	}
 }
 
-func (s *EventClient) configureBatch() (*kafka.Batch, []byte) {
+func (s *KafkaClient) configureBatch() (*kafka.Batch, []byte) {
 	batch := s.kconn.ReadBatch(minBytes, maxBytes)
 	b := make([]byte, buffer)
 	return batch, b
