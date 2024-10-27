@@ -9,15 +9,14 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-counter-backend/shared/common"
 	"github.com/go-counter-backend/shared/dbclient"
-	"github.com/go-counter-backend/shared/event"
+	"github.com/go-counter-backend/shared/mqtt_client"
 	"github.com/redis/go-redis/v9"
-	"github.com/segmentio/kafka-go"
 )
 
 var (
-	db        *dbclient.DBClient
-	config    *common.Config
-	kConsumer *event.EventClient
+	db           *dbclient.DBClient
+	config       *common.Config
+	mqttConsumer *mqtt_client.MQTTClient
 )
 
 const (
@@ -42,13 +41,12 @@ func InitDB() {
 }
 
 func InitConsumer() {
-	kconn, kErr := kafka.DialLeader(context.Background(), "tcp", config.KafkaHost, config.KafkaTopic, 0)
-	if kErr != nil {
-		panic(fmt.Errorf("failed to establish connection to kafka; %v", kErr))
+	mqttConn, mqttErr := mqtt_client.InitConn(config, "go-counter-consumer")
+	if mqttErr != nil {
+		panic(fmt.Errorf("failed to establish connection to mqtt; %v", mqttErr))
 	}
 
-	kconn.SetReadDeadline(time.Time{}) //indefinite
-	kConsumer = event.InitEventClient(kconn)
+	mqttConsumer = mqtt_client.InitClient(mqttConn)
 }
 
 func main() {
@@ -71,8 +69,8 @@ func main() {
 
 func ReadStream() {
 	ctx := context.Background()
-	ch := make(chan event.Msg, buffer)
-	go kConsumer.ReadMsg(ch)
+	ch := make(chan mqtt_client.Msg, buffer)
+	go mqttConsumer.ReadMsg(ch)
 
 	for m := range ch {
 		switch m.Event {

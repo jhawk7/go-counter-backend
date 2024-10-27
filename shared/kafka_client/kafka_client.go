@@ -1,5 +1,11 @@
 package kafka_client
 
+/*
+Ideally the consumer and producer would have used kafka to send messages in real time, but kafka
+seemed a little too intense resource-wise for a button analytics counter on a k3s cluster. Leaving package for
+future reference
+*/
+
 import (
 	"encoding/json"
 	"fmt"
@@ -36,7 +42,7 @@ func InitKafkaClient(kconn IStreamConn) *KafkaClient {
 	return &KafkaClient{kconn: kconn}
 }
 
-func (s *KafkaClient) WriteMsg(rawMsg []byte) (err error) {
+func (s *KafkaClient) PublishMsg(rawMsg []byte) (err error) {
 	var m Msg
 	if mErr := json.Unmarshal(rawMsg, &m); mErr != nil {
 		err = fmt.Errorf("failed to parse incoming message; [raw: %v], [error: %v]", rawMsg, mErr)

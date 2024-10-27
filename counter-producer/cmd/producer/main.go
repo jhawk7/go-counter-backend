@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"time"
@@ -9,10 +8,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-counter-backend/shared/common"
 	"github.com/go-counter-backend/shared/dbclient"
-	"github.com/go-counter-backend/shared/event"
+	"github.com/go-counter-backend/shared/mqtt_client"
 	"github.com/gorilla/websocket"
 	"github.com/redis/go-redis/v9"
-	"github.com/segmentio/kafka-go"
 )
 
 const (
@@ -20,9 +18,9 @@ const (
 )
 
 var (
-	db        *dbclient.DBClient
-	config    *common.Config
-	kProducer *event.EventClient
+	db           *dbclient.DBClient
+	config       *common.Config
+	mqttProducer *mqtt_client.MQTTClient
 )
 
 func InitDB() {
@@ -42,13 +40,12 @@ func InitDB() {
 }
 
 func InitProducer() {
-	kconn, kErr := kafka.DialLeader(context.Background(), "tcp", config.KafkaHost, config.KafkaTopic, 0)
-	if kErr != nil {
-		panic(fmt.Errorf("failed to establish connection to kafka; %v", kErr))
+	mqttConn, mqttErr := mqtt_client.InitConn(config, "go-counter-producer")
+	if mqttErr != nil {
+		panic(fmt.Errorf("failed to establish connection to mqtt; %v", mqttErr))
 	}
 
-	kconn.SetWriteDeadline(time.Time{}) //indefinite
-	kProducer = event.InitEventClient(kconn)
+	mqttProducer = mqtt_client.InitClient(mqttConn)
 }
 
 func main() {
@@ -120,8 +117,8 @@ func handleWs(conn *websocket.Conn) {
 		}
 		conn.SetReadDeadline(time.Now().Add(wsTimeout))
 
-		if wErr := kProducer.WriteMsg(rawMsg); wErr != nil {
-			common.LogError(wErr, false)
+		if pubErr := mqttProducer.PublishMsg(rawMsg); pubErr != nil {
+			common.LogError(pubErr, false)
 		}
 	}
 }

@@ -23,7 +23,7 @@ services:
       - "8181:8889"
     env_file:
       - redis.env
-      - kafka.env
+      - mqtt.env
     #restart: always
     depends_on:
       - redis
@@ -37,7 +37,7 @@ services:
       - "8888:8888"
     env_file:
       - redis.env
-      - kafka.env
+      - mqtt.env
     #restart: always
     depends_on:
       - redis
