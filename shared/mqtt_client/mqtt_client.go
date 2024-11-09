@@ -58,6 +58,7 @@ func InitConn(config *common.Config, clientId string) (IMQTTConn, error) {
 
 	opts := mqtt.NewClientOptions().AddBroker(fmt.Sprintf("tcp://%v:%v", broker, port))
 	opts.SetClientID(clientId)
+	opts.SetCleanSession(false) //disabling so that messages are resumed on reconnect
 	opts.SetUsername(user)
 	opts.SetPassword(pass)
 	opts.SetKeepAlive(time.Second * 10)
@@ -102,7 +103,9 @@ func (m *MQTTClient) PublishMsg(rawMsg []byte) (err error) {
 }
 
 func (m *MQTTClient) ReadMsg(ch chan<- Msg) {
-	m.conn.Subscribe(topic, qos, msgHandler)
+	if token := m.conn.Subscribe(topic, qos, msgHandler); token.Wait() && token.Error() != nil {
+		common.LogError(fmt.Errorf("failed to subscribe to mqtt topics; %v", token.Error()), true)
+	}
 	msgChan = make(chan []byte, 5) //populated by msgHandler
 
 	for {
