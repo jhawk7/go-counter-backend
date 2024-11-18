@@ -18,6 +18,7 @@ type IDBSvc interface {
 	Set(context.Context, string, interface{}, time.Duration) *redis.StatusCmd
 	Ping(context.Context) *redis.StatusCmd
 	Incr(context.Context, string) *redis.IntCmd
+	Decr(context.Context, string) *redis.IntCmd
 }
 
 type DBClient struct {
@@ -78,5 +79,16 @@ func (c *DBClient) IncrementCount(ctx context.Context) (err error) {
 	}
 
 	common.LogInfo(fmt.Sprintf("counter incremented to %v", val))
+	return
+}
+
+func (c *DBClient) DecrementCount(ctx context.Context) (err error) {
+	val, decErr := c.svc.Decr(ctx, key).Result()
+	if decErr != nil {
+		err = fmt.Errorf("failed to decrement counter; [error: %v]", decErr)
+		return
+	}
+
+	common.LogInfo(fmt.Sprintf("counter decremented to %v", val))
 	return
 }

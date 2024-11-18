@@ -80,6 +80,9 @@ func ReadStream() {
 		case "reset":
 			err := db.SetValue(ctx, 0)
 			common.LogError(err, false)
+		case "decrement":
+			err := db.DecrementCount(ctx)
+			common.LogError(err, false)
 		default:
 			common.LogError(fmt.Errorf("unexpected event message %v", m.Event), false)
 		}
